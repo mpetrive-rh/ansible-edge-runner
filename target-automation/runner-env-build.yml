@@ -1,0 +1,51 @@
+- hosts: localhost
+  gather_facts: no
+  vars:
+    runner_automation_build_dir: RUNNER-ENV
+    runner_automation_inventory: config-inventory/inventory.yml
+    runner_automation_code: automation
+  tasks: 
+  - file:
+      path: "{{ runner_automation_build_dir }}"
+      state: absent
+
+  - file:
+      path: "{{ runner_automation_build_dir }}/{{ item }}"
+      state: directory
+    loop:
+      - env
+      - inventory
+      - project
+
+  - name: build env
+    copy:
+      dest: "{{ runner_automation_build_dir }}/env/{{ item.type }}"
+      content: |
+        ---
+        {{ item.content }}
+    loop:
+      - type: envvars
+        content: TESTVAR=1
+      - type: extravars
+        content: |
+          test: val
+      - type: passwords
+        content: |
+          "Password:\\s*?$": "some_password"
+      - type: settings
+        content: |
+          idle_timeout: 600
+          job_timeout: 3600
+          pexpect_timeout: 10
+      # - type: ssh_key
+      #   content: ""
+
+  - name: build inventory
+    copy:
+      dest: "{{ runner_automation_build_dir }}/inventory/hosts"
+      src: "{{ runner_automation_inventory }}"
+
+  - name: build automation code
+    copy:
+      dest: "{{ runner_automation_build_dir }}/project"
+      src: "{{ runner_automation_code }}/"

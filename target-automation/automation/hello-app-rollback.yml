@@ -1,0 +1,6 @@
+- hosts: all
+  become: true
+  tasks:
+  - include_role:
+      name: hello_app
+      tasks_from: rollback

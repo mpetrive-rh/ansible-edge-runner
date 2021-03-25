@@ -1,0 +1,69 @@
+---
+
+- hosts: all
+  gather_facts: no
+  #become: true
+  vars:
+    # this location needs to be writable by the user running
+    automation_dir: /opt/automation
+    runner_dir: "{{ automation_dir }}/RUNNER-ENV"
+    default_pb: hello-app-install.yml
+    log_location: hello-app-ansible.log
+    run_ident: hello-app-run
+    #runner_artifacts:  automation-artifacts
+    ansible_cmd_extra: "-e latency=10"
+    venv_path: /home/vagrant/ansible
+    ansible_runner_verbosity: "-v"
+
+    runner_cmd:
+      start: |
+        #soft activate
+        export PATH={{ venv_path }}/bin:$PATH;
+        ansible-runner --playbook {{ default_pb }} \
+                       --limit {{ inventory_hostname }} \
+                       --ident {{ run_ident }} \
+                       --cmdline '{{ ansible_cmd_extra }}' \
+                       start {{ runner_dir }} {{ ansible_runner_verbosity }} \
+      status:
+        ansible-runner --playbook {{ default_pb }}
+                       --ident {{ run_ident }}
+                       is-alive {{ runner_dir }} {{ ansible_runner_verbosity }}
+    
+  tasks:
+  - name: start ansible runner as background/deamon
+    shell: "{{ runner_cmd.start }}"
+    register: runner_status
+
+  - name: fail block
+    when: runner_status is failed
+    block:
+      - debug: 
+          msg: Ansible runner command failed.  {{ runner_cmd.start }}
+
+  - name: success block
+    when: runner_status is succeeded
+    block:
+      - debug:
+          msg: Ansible runner started.  Checking status
+
+      - name: check status
+        shell: "{{ runner_cmd.status }}"
+        register: runner_exec_status
+        until: runner_exec_status.rc != 0
+        retries: 60
+        delay: 2
+        failed_when: runner_exec_status.rc not in [ 0, 1 ]
+
+      - name: ansible runner completed
+        debug:
+          msg: "Ansbile runner completed/is not alive: is-alive rc {{ runner_exec_status.rc }}"
+    rescue:
+      - debug:
+          msg: Ansible runner appears to have hung and/or never completed
+
+  - name: capture job artifacts
+    synchronize:
+      src: "{{ runner_dir }}/artifacts/{{ run_ident }}" 
+      dest: RUNNER-ARTIFACTS/
+      mode: pull
+    tags: capture

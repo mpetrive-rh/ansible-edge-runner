@@ -1,0 +1,18 @@
+northeast:
+  hosts:
+    debiot1:
+      ansible_host: 172.17.0.1
+      device_type: mox1
+      applications: 
+        - analysis1
+        - analysis2
+        - ai_ml1
+      location: MA 
+  vars:
+    region: northest
+    cloud_hub: azure
+    data_link: modem2
+    azure_service_bus: sb://analytics.indust.acme.net/;SomeBus
+    azure_service_queue: SomeData
+    ansible_user: vagrant
+    ansible_password: vagrant

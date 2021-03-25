@@ -1,0 +1,4 @@
+---
+# defaults file for hello_app
+hello_app_artifact_dir: /opt/automation/media
+hello_app_artifact_pkg: hello_2.10-2_amd64.deb

@@ -1,0 +1,56 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/debian10"
+  config.vm.box_check_update = false
+
+  #config.vm.network "forwarded_port", guest: 80, host: 8080
+  config.vm.hostname = "debiot1"
+  #config.vm.network "private_network", ip: "192.168.33.10"
+  # config.vm.network "public_network"
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.memory = 8192
+    libvirt.cpus = 4
+  end
+  
+  config.vm.provision "shell", inline: <<-SHELL
+     apt-get update
+
+     apt-get install \
+      psutil \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      gnupg-agent \
+      software-properties-common -y
+
+     echo 'deb https://releases.ansible.com/ansible-runner/deb/ stretch main' > /etc/apt/sources.list.d/ansible.list
+     apt-key adv --keyserver keyserver.ubuntu.com --recv 3DD29021
+     apt-get update
+     apt-get install ansible-runner -y
+
+
+    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+    apt-key fingerprint 0EBFCD88
+
+    add-apt-repository \
+      "deb [arch=amd64] https://download.docker.com/linux/debian \
+      $(lsb_release -cs) \
+      stable"
+
+    apt-get update
+    apt-get install docker-ce docker-ce-cli containerd.io -y
+
+    systemctl start docker
+    systemctl enable docker
+
+    groupadd docker
+    usermod -aG docker vagrant
+
+    mkdir /opt/automation
+    chmod uog+rwx /opt/automation
+  SHELL
+end

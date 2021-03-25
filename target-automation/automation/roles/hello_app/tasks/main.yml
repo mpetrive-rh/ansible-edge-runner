@@ -1,0 +1,11 @@
+---
+
+- name: remove package
+  apt:
+    name: hello
+    state: absent
+    
+# tasks file for hello_app
+- name: install hello world package
+  apt:
+    deb: "{{ hello_app_artifact_dir }}/{{ hello_app_artifact_pkg }}"

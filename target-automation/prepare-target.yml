@@ -1,0 +1,31 @@
+---
+
+- hosts: all
+  gather_facts: no
+  become: true
+  vars:
+    base_dir: /opt/automation
+  tasks:
+
+  - name: clean up
+    file: 
+      path: "{{ base_dir }}"
+      state: "{{ item }}"
+      mode: 0777
+    loop:
+      - absent
+      - directory
+    
+  - name: move artifacts to target dir
+    copy:
+      src: media
+      dest: "{{ base_dir }}"
+      mode: 0777
+      directory_mode: 0777
+
+  - name: move automation
+    copy:
+      src: RUNNER-ENV
+      dest: "{{ base_dir }}"
+      mode: 0777
+      directory_mode: 0777

@@ -1,0 +1,60 @@
+---
+
+- hosts: all
+  gather_facts: no
+  #become: true
+  vars:
+    # this location needs to be writable by the user running
+    automation_dir: /opt/automation
+    runner_dir: "{{ automation_dir }}/RUNNER-ENV"
+    default_pb: hello-app-install.yml
+    log_location: hello-app-ansible.log
+    run_ident: hello-app-run
+    #runner_artifacts:  automation-artifacts
+    ansible_cmd_extra: "-e latency=10"
+    venv_path: /home/vagrant/ansible
+    ansible_runner_verbosity: "-v"
+    quay_repo: quay.io/mpetrive/auto-exec-env
+
+    ###
+    # docker pull quay.io/mpetrive/auto-exec-env
+    # docker run --rm --volume=/opt/automation/:/opt/automation -e RUNNER_PLAYBOOK=hello-app-install.yml quay.io/mpetrive/auto-exec-env ansible-runner run -j /opt/automation/RUNNER-ENV
+    ####
+
+  tasks:
+  - name: pull execution image
+    command: docker pull quay.io/mpetrive/auto-exec-env
+
+  - name: run image in container
+    ## --rm
+    command: >
+      docker run
+      -d
+      --volume={{automation_dir}}:{{automation_dir}} 
+      -e RUNNER_PLAYBOOK={{default_pb}} 
+      quay.io/mpetrive/auto-exec-env 
+      ansible-runner run -j -i {{run_ident}} {{runner_dir}}
+    register: docker_container_id
+
+  - debug: var=docker_container_id
+
+  - name: wait for container to finish
+    command: docker inspect {{ docker_container_id.stdout }}
+    register: docker_inspect
+    until: (docker_inspect.stdout | from_json | first).State.Status == 'exited'
+    retries: 30
+    delay: 1
+
+  - name: show status
+    debug: 
+      msg: "{{ _docker_inspect_status.State.Status }}"
+    vars:
+      _docker_inspect_status: "{{docker_inspect.stdout | from_json | first}}"
+
+  - name: capture job artifacts
+    synchronize:
+      src: "{{ runner_dir }}/artifacts/{{ run_ident }}" 
+      dest: RUNNER-ARTIFACTS/
+      mode: pull
+    tags: capture
+    become: true

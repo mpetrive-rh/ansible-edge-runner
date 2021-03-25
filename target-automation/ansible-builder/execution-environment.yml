@@ -1,0 +1,25 @@
+---
+version: 1
+
+# build_arg_defaults:
+  # ANSIBLE_RUNNER_IMAGE: 'quay.io/ansible/ansible-runner:stable-2.10.devel'
+  # PYTHON_BUILDER_IMAGE: TBD
+  # ANSIBLE_GALAXY_CLI_COLLECTION_OPTS
+
+# When using an ansible.cfg file to pass a token and other settings for a private account to an Automation Hub server, 
+# listing the config file path here (as a string) will enable it to be included as a build argument in the initial phase of the build.
+# ansible_config: 'ansible.cfg'
+
+dependencies:
+  galaxy: requirements.yml
+  python: requirements.txt
+  system: bindep.txt
+
+additional_build_steps:
+  prepend: |
+    RUN pip3 install --upgrade pip setuptools
+    RUN whoami
+    RUN cat /etc/os-release
+  append:
+    - RUN echo This is a post-install command!
+    - RUN ls -la /etc
